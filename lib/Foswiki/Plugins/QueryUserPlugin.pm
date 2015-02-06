@@ -11,7 +11,7 @@ use Foswiki::Users   ();
 
 our $VERSION = '0.1';
 our $RELEASE = '0.1';
-our $SHORTDESCRIPTION = 'Empty Plugin used as a template for new Plugins';
+our $SHORTDESCRIPTION = 'Provides a macro to list/filter users.';
 our $NO_PREFS_IN_TOPIC = 1;
 
 sub initPlugin {
@@ -37,7 +37,6 @@ sub _filter {
 }
 
 sub _filter_user {
-print STDERR "filtering user $_[0]{cuid}\n";
     $_[0]{login} =~ /$_[1]/i ||
     $_[0]{wikiname} =~ /$_[1]/i;
 }
@@ -84,22 +83,22 @@ sub _QUERYUSERS {
         my $q = $session->{request};
         $filter = $q->param($params->{urlparam});
     }
-    if (($params->{regex} || '') ne 'on') {
+    if (!Foswiki::Func::isTrue($params->{regex})) {
         $filter = quotemeta $filter;
     }
-    $filter = '.*' if $filter eq '';
+    $filter = '.*' if !defined $filter || $filter eq '';
 
     my $type = $params->{type} || 'users';
     my $limit = $params->{limit} || 0;
 
     my @list;
     push @list, _users($session) if $type eq 'users' || $type eq 'any';
-    push @list, _groups($session) if $type eq 'groups' || $type eq 'both';
+    push @list, _groups($session) if $type eq 'groups' || $type eq 'any';
 
-    my $format = Foswiki::Func::decodeFormatTokens($params->{format}) || '$wikiName';
-    my $userformat = Foswiki::Func::decodeFormatTokens($params->{userformat}) || $format;
-    my $groupformat = Foswiki::Func::decodeFormatTokens($params->{groupformat}) || $format;
-    my $separator = Foswiki::Func::decodeFormatTokens($params->{separator}) || ', ';
+    my $format = $params->{format} || '$wikiName';
+    my $userformat = $params->{userformat} || $format;
+    my $groupformat = $params->{groupformat} || $format;
+    my $separator = $params->{separator} || ', ';
     my @out;
     for my $o (_filter($filter, @list)) {
         my $entry = $o->{type} eq 'user' ? $userformat : $groupformat;
@@ -108,7 +107,7 @@ sub _QUERYUSERS {
         push @out, $entry;
         last if $limit && @out >= $limit;
     }
-    join($separator, @out);
+    return Foswiki::Func::decodeFormatTokens(join($separator, @out));
 }
 
 sub restQuery {
