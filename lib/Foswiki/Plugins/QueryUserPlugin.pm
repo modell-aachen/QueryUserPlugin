@@ -103,6 +103,7 @@ sub _QUERYUSERS {
     my @out;
     for my $o (_filter($filter, @list)) {
         my $entry = $o->{type} eq 'user' ? $userformat : $groupformat;
+        $entry =~ s/\$cUID/$o->{cuid}/eg;
         $entry =~ s/\$loginName/$o->{login} || $o->{cuid}/eg;
         $entry =~ s/\$wikiName/$o->{wikiname} || $o->{cuid}/eg;
         $entry =~ s/\$displayName/$o->{displayname} || $o->{cuid}/eg;
