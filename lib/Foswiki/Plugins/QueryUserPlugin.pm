@@ -56,6 +56,7 @@ sub _users {
             cuid => $u,
             login => $session->{users}->getLoginName($u),
             wikiname => $session->{users}->getWikiName($u),
+            displayname => $session->{users}->can('getDisplayName') ? $session->{users}->getDisplayName($u) : $session->{users}->getWikiName($u),
             email => join(', ', $session->{users}->getEmails($u)),
         };
     }
@@ -104,6 +105,7 @@ sub _QUERYUSERS {
         my $entry = $o->{type} eq 'user' ? $userformat : $groupformat;
         $entry =~ s/\$loginName/$o->{login} || $o->{cuid}/eg;
         $entry =~ s/\$wikiName/$o->{wikiname} || $o->{cuid}/eg;
+        $entry =~ s/\$displayName/$o->{displayname} || $o->{cuid}/eg;
         push @out, $entry;
         last if $limit && @out >= $limit;
     }
