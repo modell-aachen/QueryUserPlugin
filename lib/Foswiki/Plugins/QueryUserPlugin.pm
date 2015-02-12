@@ -30,19 +30,12 @@ sub initPlugin {
 }
 
 sub _filter {
-    my ($filter, @list) = @_;
+    my ($filter, $fields, @list) = @_;
+    my @parts = map { my $f = $_; sub { $_[0]{$f} =~ /$_[1]/i } } @$fields;
     return grep {
-        $_->{type} eq 'user' ? _filter_user($_, $filter) : _filter_group($_, $filter)
+        my $o = $_;
+        grep { $_->($o, $filter) } @parts
     } @list;
-}
-
-sub _filter_user {
-    $_[0]{login} =~ /$_[1]/i ||
-    $_[0]{wikiname} =~ /$_[1]/i;
-}
-
-sub _filter_group {
-    $_[0]{cuid} =~ /$_[1]/i;
 }
 
 sub _users {
@@ -53,10 +46,10 @@ sub _users {
         my $u = $iter->next;
         push @res, {
             type => 'user',
-            cuid => $u,
-            login => $session->{users}->getLoginName($u),
-            wikiname => $session->{users}->getWikiName($u),
-            displayname => $session->{users}->can('getDisplayName') ? $session->{users}->getDisplayName($u) : $session->{users}->getWikiName($u),
+            cUID => $u,
+            loginName => $session->{users}->getLoginName($u),
+            wikiName => $session->{users}->getWikiName($u),
+            displayName => $session->{users}->can('getDisplayName') ? $session->{users}->getDisplayName($u) : $session->{users}->getWikiName($u),
             email => join(', ', $session->{users}->getEmails($u)),
         };
     }
@@ -84,10 +77,14 @@ sub _QUERYUSERS {
         my $q = $session->{request};
         $filter = $q->param($params->{urlparam});
     }
-    if (!Foswiki::Func::isTrue($params->{regex})) {
+    my $exact = Foswiki::Func::isTrue($params->{exact});
+    if ($exact || !Foswiki::Func::isTrue($params->{regex})) {
         $filter = quotemeta $filter;
     }
     $filter = '.*' if !defined $filter || $filter eq '';
+    $filter = "^$filter\$" if $exact;
+
+    my @fields = split(/\s*,\s*/, $params->{fields} || 'wikiName');
 
     my $type = $params->{type} || 'users';
     my $limit = $params->{limit} || 0;
@@ -101,12 +98,13 @@ sub _QUERYUSERS {
     my $groupformat = $params->{groupformat} || $format;
     my $separator = $params->{separator} || ', ';
     my @out;
-    for my $o (_filter($filter, @list)) {
+    for my $o (_filter($filter, \@fields, @list)) {
         my $entry = $o->{type} eq 'user' ? $userformat : $groupformat;
-        $entry =~ s/\$cUID/$o->{cuid}/eg;
-        $entry =~ s/\$loginName/$o->{login} || $o->{cuid}/eg;
-        $entry =~ s/\$wikiName/$o->{wikiname} || $o->{cuid}/eg;
-        $entry =~ s/\$displayName/$o->{displayname} || $o->{cuid}/eg;
+        $entry =~ s/\$cUID/$o->{cUID}/eg;
+        $entry =~ s/\$loginName/$o->{loginName} || $o->{cuid}/eg;
+        $entry =~ s/\$email/$o->{email} || ''/eg;
+        $entry =~ s/\$wikiName/$o->{wikiName} || $o->{cuid}/eg;
+        $entry =~ s/\$displayName/$o->{displayName} || $o->{cuid}/eg;
         push @out, $entry;
         last if $limit && @out >= $limit;
     }
