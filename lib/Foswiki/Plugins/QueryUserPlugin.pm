@@ -64,6 +64,7 @@ sub _groups {
         push @res, {
             type => 'group',
             cuid => $g,
+            wikiName => $g,
         };
     }
     @res;
