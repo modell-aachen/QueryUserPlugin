@@ -63,7 +63,7 @@ sub _groups {
         my $g = $iter->next;
         push @res, {
             type => 'group',
-            cuid => $g,
+            cUID => $g,
             wikiName => $g,
         };
     }
