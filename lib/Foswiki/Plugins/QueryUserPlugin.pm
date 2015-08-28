@@ -24,6 +24,7 @@ sub initPlugin {
         return 0;
     }
 
+    Foswiki::Func::registerTagHandler( 'RENDERUSER', \&_RENDERUSER );
     Foswiki::Func::registerTagHandler( 'QUERYUSERS', \&_QUERYUSERS );
     #Foswiki::Func::registerRESTHandler( 'query', \&restQuery );
     return 1;
@@ -38,20 +39,25 @@ sub _filter {
     } @list;
 }
 
+sub _userinfo {
+    my ($session, $u) = @_;
+    return {
+        type => 'user',
+        cUID => $u,
+        loginName => $session->{users}->getLoginName($u),
+        wikiName => $session->{users}->getWikiName($u),
+        displayName => $session->{users}->can('getDisplayName') ? $session->{users}->getDisplayName($u) : $session->{users}->getWikiName($u),
+        email => join(', ', $session->{users}->getEmails($u)),
+    };
+}
+
 sub _users {
     my $session = shift;
     my $iter = $session->{users}->eachUser();
     my @res;
     while ($iter->hasNext) {
         my $u = $iter->next;
-        push @res, {
-            type => 'user',
-            cUID => $u,
-            loginName => $session->{users}->getLoginName($u),
-            wikiName => $session->{users}->getWikiName($u),
-            displayName => $session->{users}->can('getDisplayName') ? $session->{users}->getDisplayName($u) : $session->{users}->getWikiName($u),
-            email => join(', ', $session->{users}->getEmails($u)),
-        };
+        push @res, _userinfo($session, $u);
     }
     @res;
 }
@@ -68,6 +74,43 @@ sub _groups {
         };
     }
     @res;
+}
+
+sub _render {
+    my ($o, $entry) = @_;
+    $entry =~ s/\$cUID/$o->{cUID}/eg;
+    $entry =~ s/\$loginName/$o->{loginName} || $o->{cuid}/eg;
+    $entry =~ s/\$email/$o->{email} || ''/eg;
+    $entry =~ s/\$wikiName/$o->{wikiName} || $o->{cuid}/eg;
+    $entry =~ s/\$displayName/$o->{displayName} || $o->{cuid}/eg;
+    $entry;
+}
+
+sub _RENDERUSER {
+    my ($session, $params, $topic, $web, $topicObject) = @_;
+
+    my $cUID = $params->{_DEFAULT};
+    my $type = $params->{type} || 'user';
+    if ($type eq 'any') {
+        $type = Foswiki::Func::isGroup($cUID) ? 'group' : 'user';
+    }
+
+    my $info;
+    if ($type eq 'user') {
+        $info = _userinfo($session, $cUID);
+    } else {
+        $info = {
+            type => 'group',
+            cUID => $cUID,
+            wikiName => $cUID,
+        };
+    }
+
+    my $format = $params->{format} || '$wikiName';
+    my $userformat = $params->{userformat} || $format;
+    my $groupformat = $params->{groupformat} || $format;
+
+    return Foswiki::Func::decodeFormatTokens(_render($info, $type eq 'user' ? $userformat: $groupformat));
 }
 
 sub _QUERYUSERS {
@@ -100,12 +143,7 @@ sub _QUERYUSERS {
     my $separator = $params->{separator} || ', ';
     my @out;
     for my $o (_filter($filter, \@fields, @list)) {
-        my $entry = $o->{type} eq 'user' ? $userformat : $groupformat;
-        $entry =~ s/\$cUID/$o->{cUID}/eg;
-        $entry =~ s/\$loginName/$o->{loginName} || $o->{cuid}/eg;
-        $entry =~ s/\$email/$o->{email} || ''/eg;
-        $entry =~ s/\$wikiName/$o->{wikiName} || $o->{cuid}/eg;
-        $entry =~ s/\$displayName/$o->{displayName} || $o->{cuid}/eg;
+        my $entry = _render($o, $o->{type} eq 'user' ? $userformat : $groupformat);
         push @out, $entry;
         last if $limit && @out >= $limit;
     }
