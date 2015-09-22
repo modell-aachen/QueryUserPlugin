@@ -78,13 +78,26 @@ sub _groups {
     @res;
 }
 
+sub _renderOneValue {
+    my ($_text, $name, $val) = @_;
+    $_[0] =~ s/\$json:$name/my $x = JSON->new->allow_nonref->encode($val); $x =~ s#^"##; $x =~ s#"$##; $x/eg;
+    $_[0] =~ s/\$$name/$val/g;
+}
 sub _render {
     my ($o, $entry) = @_;
-    $entry =~ s/\$cUID/$o->{cUID}/eg;
-    $entry =~ s/\$loginName/$o->{loginName} || $o->{cuid}/eg;
-    $entry =~ s/\$email/$o->{email} || ''/eg;
-    $entry =~ s/\$wikiName/$o->{wikiName} || $o->{cuid}/eg;
-    $entry =~ s/\$displayName/$o->{displayName} || $o->{cuid}/eg;
+    $entry =~ s/\$pref\(($Foswiki::regex{tagNameRegex})(?:,([^\)]+)?\)/
+        my ($tagName, $tagFallback) = ($1, $2);
+        my $val = Foswiki::Func::getPreferencesValue($tagName);
+        $val = $tagFallback unless $val;
+        $val = '$displayName' unless $val;
+        $val;
+    /eg;
+    _renderOneValue($entry, 'cUID', $o->{cUID});
+    _renderOneValue($entry, 'cUID', $o->{cUID});
+    _renderOneValue($entry, 'loginName', $o->{loginName} || $o->{cuid});
+    _renderOneValue($entry, 'email', $o->{email} || '');
+    _renderOneValue($entry, 'wikiName', $o->{wikiName} || $o->{cuid});
+    _renderOneValue($entry, 'displayName', $o->{displayName} || $o->{cuid});
     $entry;
 }
 
@@ -105,10 +118,11 @@ sub _RENDERUSER {
             type => 'group',
             cUID => $cUID,
             wikiName => $cUID,
+            displayName => $cUID,
         };
     }
 
-    my $format = $params->{format} || '$wikiName';
+    my $format = $params->{format} || '$displayName';
     my $userformat = $params->{userformat} || $format;
     my $groupformat = $params->{groupformat} || $format;
 
@@ -130,7 +144,7 @@ sub _QUERYUSERS {
     $filter = '.*' if !defined $filter || $filter eq '';
     $filter = "^$filter\$" if $exact;
 
-    my @fields = split(/\s*,\s*/, $params->{fields} || 'wikiName');
+    my @fields = split(/\s*,\s*/, $params->{fields} || 'wikiName,displayName');
 
     my $type = $params->{type} || 'users';
     my $limit = $params->{limit} || 0;
@@ -139,7 +153,7 @@ sub _QUERYUSERS {
     push @list, _users($session) if $type eq 'users' || $type eq 'any';
     push @list, _groups($session) if $type eq 'groups' || $type eq 'any';
 
-    my $format = $params->{format} || '$wikiName';
+    my $format = $params->{format} || '$displayName';
     my $userformat = $params->{userformat} || $format;
     my $groupformat = $params->{groupformat} || $format;
     my $separator = $params->{separator} || ', ';
