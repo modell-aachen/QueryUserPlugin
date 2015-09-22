@@ -10,7 +10,7 @@
    * Parameter =exact="..."= - if set to =on=, the filter will be match against the full string rather than any substring.
    * Parameter =fields="..."= - comma-separated list of fields to match the filter against. An entry is returned if *any* of the fields matches. Defaults to =wikiName=. For a list of valid fields, see =format= below.
    * Parameter =type="..."= - can be set to =user=, =group= or =any= to specify which objects to return. Defaults to =user=.
-   * Parameter =format="..."= - format for each result. The following placeholders can be used: =$loginName=, =$wikiName=, =$displayName=, =$cUID=, =$email=
+   * Parameter =format="..."= - format for each result. The following placeholders can be used: =$loginName=, =$wikiName=, =$displayName=, =$cUID=, =$email=. Each placeholder can also be written like =$json:loginName= to enable escaping for use within strings in JSON notation. Additionally, a placeholder of the form =$pref(ABC)= or =$pref(ABC,default value)= will expand to the value of the =ABC= preference. Placeholders added from a preference will be expanded, too.
    * Parameter =userformat= / =groupformat= - separate formats for use when both users and groups are returned; if not given, the normal =format= parameter is used.
    * Parameter =separator= - string to be inserted between results.
    * Parameter =limit= - number of results to render; defaults to all.

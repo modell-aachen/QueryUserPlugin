@@ -1,4 +1,5 @@
 !noci
 data/System/QueryUserPlugin.txt 0644 Plugin doc page
 data/System/VarQUERYUSERS.txt 0644 Tag documentation
+data/System/VarRENDERUSER.txt 0644 Tag documentation
 lib/Foswiki/Plugins/QueryUserPlugin.pm 0444 Plugin Perl module

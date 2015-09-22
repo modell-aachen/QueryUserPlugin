@@ -6,9 +6,11 @@
 This can be used in a helper for user autocomplete features or lists of
 registered users.
 
-The macro is used like this:
+---++ Defined macros
 
 %INCLUDE{"VarQUERYUSERS"}%
+
+%INCLUDE{"VarRENDERUSER"}%
 
 <!--
 One line description, required for extensions repository catalog.
