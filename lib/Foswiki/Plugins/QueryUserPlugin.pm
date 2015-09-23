@@ -85,7 +85,7 @@ sub _renderOneValue {
 }
 sub _render {
     my ($o, $entry) = @_;
-    $entry =~ s/\$pref\(($Foswiki::regex{tagNameRegex})(?:,([^\)]+)?\)/
+    $entry =~ s/\$pref\(($Foswiki::regex{tagNameRegex})(?:,([^\)]+))?\)/
         my ($tagName, $tagFallback) = ($1, $2);
         my $val = Foswiki::Func::getPreferencesValue($tagName);
         $val = $tagFallback unless $val;
