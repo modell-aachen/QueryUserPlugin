@@ -87,6 +87,9 @@ sub treatFile {
     $l =~ s/^(%META:PREFERENCE\{)(.*)(\}%)$/$1. _mapTag($2, '^(?:ALLOW|DENY)TOPIC' => 1) .$3/egm;
     $l =~ s/^((?:   )+\*\s+Set\s+(\w+)\s+=\s+)([^\015\012]*)$/$1. _mapPref($2, $3)/egm;
 
+    # Task changesets
+    $l =~ s/^(%META:TASKCHANGESET\{)(.*)(\}%)$/$1. _mapTag($2, '^actor$' => 0) .$3/egm;
+
     return 1 if $l eq $origL;
     open($tfh, '>:utf8', $filename) or warn("Can't open $filename for writing: $!") && return;
     print $tfh $l;
@@ -139,7 +142,6 @@ sub _mapPref {
     return $v unless $pref =~ /^(?:ALLOW|DENY)(?:TOPIC|WEB|ROOT)/;
     _mapUserMulti($v);
 }
-
 
 my $uit = Foswiki::Func::eachUser();
 while ($uit->hasNext) {
