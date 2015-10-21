@@ -55,10 +55,15 @@ sub _userinfo {
 
 sub _users {
     my $session = shift;
+    my $basemapping = shift;
     my $iter = $session->{users}->eachUser();
     my @res;
     while ($iter->hasNext) {
         my $u = $iter->next;
+        if ($u =~ /^BaseUserMapping_(\d+)$/) {
+            next if $basemapping eq 'skip';
+            next if $basemapping eq 'adminonly' && $1 ne '333';
+        }
         push @res, _userinfo($session, $u);
     }
     @res;
@@ -149,8 +154,10 @@ sub _QUERYUSERS {
     my $type = $params->{type} || 'users';
     my $limit = $params->{limit} || 0;
 
+    my $basemapping = $params->{basemapping} || 'skip';
+
     my @list;
-    push @list, _users($session) if $type eq 'users' || $type eq 'any';
+    push @list, _users($session, $basemapping) if $type eq 'users' || $type eq 'any';
     push @list, _groups($session) if $type eq 'groups' || $type eq 'any';
 
     my $format = $params->{format} || '$displayName';
