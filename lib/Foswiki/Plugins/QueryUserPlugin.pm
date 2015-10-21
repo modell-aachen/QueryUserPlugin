@@ -104,7 +104,7 @@ sub _render {
 sub _RENDERUSER {
     my ($session, $params, $topic, $web, $topicObject) = @_;
 
-    my $cUID = $params->{_DEFAULT};
+    my $cUID = $params->{_DEFAULT} || $session->{user};
     my $type = $params->{type} || 'user';
     if ($type eq 'any') {
         $type = Foswiki::Func::isGroup($cUID) ? 'group' : 'user';
