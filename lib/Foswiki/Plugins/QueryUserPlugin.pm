@@ -88,7 +88,7 @@ sub _render {
     $entry =~ s/\$pref\(($Foswiki::regex{tagNameRegex})(?:,([^\)]+))?\)/
         my ($tagName, $tagFallback) = ($1, $2);
         my $val = Foswiki::Func::getPreferencesValue($tagName);
-        $val = $tagFallback unless $val;
+        $val = $tagFallback unless $val || !defined $tagFallback;
         $val = '$displayName' unless $val;
         $val;
     /eg;
@@ -103,7 +103,8 @@ sub _render {
 sub _RENDERUSER {
     my ($session, $params, $topic, $web, $topicObject) = @_;
 
-    my $cUID = $params->{_DEFAULT} || $session->{user};
+    my $cUID = $params->{_DEFAULT};
+    $cUID = $session->{user} unless defined $cUID;
     my $type = $params->{type} || 'user';
     if ($type eq 'any') {
         $type = Foswiki::Func::isGroup($cUID) ? 'group' : 'user';
