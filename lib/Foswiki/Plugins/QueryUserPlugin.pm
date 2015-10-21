@@ -93,11 +93,10 @@ sub _render {
         $val;
     /eg;
     _renderOneValue($entry, 'cUID', $o->{cUID});
-    _renderOneValue($entry, 'cUID', $o->{cUID});
-    _renderOneValue($entry, 'loginName', $o->{loginName} || $o->{cuid});
+    _renderOneValue($entry, 'loginName', $o->{loginName} || $o->{cUID});
     _renderOneValue($entry, 'email', $o->{email} || '');
-    _renderOneValue($entry, 'wikiName', $o->{wikiName} || $o->{cuid});
-    _renderOneValue($entry, 'displayName', $o->{displayName} || $o->{cuid});
+    _renderOneValue($entry, 'wikiName', $o->{wikiName} || $o->{cUID});
+    _renderOneValue($entry, 'displayName', $o->{displayName} || $o->{cUID});
     $entry;
 }
 
