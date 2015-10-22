@@ -143,7 +143,7 @@ sub _QUERYUSERS {
         $filter = $q->param($params->{urlparam});
     }
     my $exact = Foswiki::Func::isTrue($params->{exact});
-    if ($exact || !Foswiki::Func::isTrue($params->{regex})) {
+    if ($filter && ($exact || !Foswiki::Func::isTrue($params->{regex}))) {
         $filter = quotemeta $filter;
     }
     $filter = '.*' if !defined $filter || $filter eq '';
