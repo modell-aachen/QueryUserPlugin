@@ -27,7 +27,37 @@ sub initPlugin {
     Foswiki::Func::registerTagHandler( 'RENDERUSER', \&_RENDERUSER );
     Foswiki::Func::registerTagHandler( 'QUERYUSERS', \&_QUERYUSERS );
     #Foswiki::Func::registerRESTHandler( 'query', \&restQuery );
+
+    # Copy/Paste/Modify from MetaCommentPlugin
+    # SMELL: this is not reliable as it depends on plugin order
+    # if (Foswiki::Func::getContext()->{SolrPluginEnabled}) {
+    if ($Foswiki::cfg{Plugins}{SolrPlugin}{Enabled}) {
+      require Foswiki::Plugins::SolrPlugin;
+      Foswiki::Plugins::SolrPlugin::registerIndexAttachmentHandler(
+        \&indexAttachmentOrTopicHandler
+      );
+      Foswiki::Plugins::SolrPlugin::registerIndexTopicHandler(
+        \&indexAttachmentOrTopicHandler
+      );
+    }
+
     return 1;
+}
+
+sub indexAttachmentOrTopicHandler {
+    my ($indexer, $doc ) = @_; # note: this is used for attachments and topics
+
+    my $author = $doc->value_for('author');
+    return unless $author;
+
+    my $session = $Foswiki::Plugins::SESSION;
+    my $cUID = Foswiki::Func::getCanonicalUserID($author);
+    my $info = _userinfo($session, $cUID);
+
+    my $format = '$displayName';
+
+    my $author_s = Foswiki::Func::decodeFormatTokens(_render($info, $format));
+    $doc->add_fields( 'author_s', $author_s );
 }
 
 sub _filter {
