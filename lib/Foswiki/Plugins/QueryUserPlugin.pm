@@ -198,11 +198,17 @@ sub _QUERYUSERS {
     my $userformat = $params->{userformat} || $format;
     my $groupformat = $params->{groupformat} || $format;
     my $separator = $params->{separator} || ', ';
+    my $sort = $params->{sort} || '';
     my @out;
     for my $o (_filter($filter, \@fields, @list)) {
         my $entry = _render($o, $o->{type} eq 'user' ? $userformat : $groupformat);
         push @out, $entry;
         last if $limit && @out >= $limit;
+    }
+    if($sort eq 'asc' ){
+        @out = sort { $a cmp $b } @out;
+    }elsif($sort eq 'desc'){
+        @out = reverse(sort { $a cmp $b } @out);
     }
     return Foswiki::Func::decodeFormatTokens(join($separator, @out));
 }
