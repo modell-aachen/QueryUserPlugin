@@ -27,7 +27,37 @@ sub initPlugin {
     Foswiki::Func::registerTagHandler( 'RENDERUSER', \&_RENDERUSER );
     Foswiki::Func::registerTagHandler( 'QUERYUSERS', \&_QUERYUSERS );
     #Foswiki::Func::registerRESTHandler( 'query', \&restQuery );
+
+    # Copy/Paste/Modify from MetaCommentPlugin
+    # SMELL: this is not reliable as it depends on plugin order
+    # if (Foswiki::Func::getContext()->{SolrPluginEnabled}) {
+    if ($Foswiki::cfg{Plugins}{SolrPlugin}{Enabled}) {
+      require Foswiki::Plugins::SolrPlugin;
+      Foswiki::Plugins::SolrPlugin::registerIndexAttachmentHandler(
+        \&indexAttachmentOrTopicHandler
+      );
+      Foswiki::Plugins::SolrPlugin::registerIndexTopicHandler(
+        \&indexAttachmentOrTopicHandler
+      );
+    }
+
     return 1;
+}
+
+sub indexAttachmentOrTopicHandler {
+    my ($indexer, $doc ) = @_; # note: this is used for attachments and topics
+
+    my $author = $doc->value_for('author');
+    return unless $author;
+
+    my $session = $Foswiki::Plugins::SESSION;
+    my $cUID = Foswiki::Func::getCanonicalUserID($author);
+    my $info = _userinfo($session, $cUID);
+
+    my $format = '$displayName';
+
+    my $author_s = Foswiki::Func::decodeFormatTokens(_render($info, $format));
+    $doc->add_fields( 'author_s', $author_s );
 }
 
 sub _filter {
@@ -168,11 +198,17 @@ sub _QUERYUSERS {
     my $userformat = $params->{userformat} || $format;
     my $groupformat = $params->{groupformat} || $format;
     my $separator = $params->{separator} || ', ';
+    my $sort = $params->{sort} || '';
     my @out;
     for my $o (_filter($filter, \@fields, @list)) {
         my $entry = _render($o, $o->{type} eq 'user' ? $userformat : $groupformat);
         push @out, $entry;
         last if $limit && @out >= $limit;
+    }
+    if($sort eq 'asc' ){
+        @out = sort { $a cmp $b } @out;
+    }elsif($sort eq 'desc'){
+        @out = reverse(sort { $a cmp $b } @out);
     }
     return Foswiki::Func::decodeFormatTokens(join($separator, @out));
 }
