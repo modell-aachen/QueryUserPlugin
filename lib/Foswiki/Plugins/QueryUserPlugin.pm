@@ -148,7 +148,7 @@ sub _RENDERUSER {
     my $info;
     if ($type eq 'user') {
         my $convert = $params->{convert};
-        if (Foswiki::Func::isTrue($convert, 0)) {
+        if (defined $params->{_DEFAULT} && (Foswiki::Func::isTrue($convert, 0) || $Foswiki::cfg{Plugins}{QueryUserPlugin}{ForceConvert})) {
             $cUID = Foswiki::Func::getCanonicalUserID($cUID);
         }
         $info = _userinfo($session, $cUID);

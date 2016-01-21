@@ -12,6 +12,11 @@ registered users.
 
 %INCLUDE{"VarRENDERUSER"}%
 
+---++ Configure
+---+++ ForceConvert
+
+Set this to true, if you always want to convert the input to a valid cUID.
+
 <!--
 One line description, required for extensions repository catalog.
    * Set SHORTDESCRIPTION = %$SHORTDESCRIPTION%
