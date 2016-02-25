@@ -72,14 +72,14 @@ sub _filter {
 sub _userinfo {
     my ($session, $u) = @_;
     my $mapper = $session->{users}->_getMapping($u);
-    my $wn = $session->{users}->getWikiName($u);
+    my $wn = $session->{users}->getWikiName($u) || $u;
     return {
         type => 'user',
         cUID => $u,
-        loginName => $session->{users}->getLoginName($u),
+        loginName => $session->{users}->getLoginName($u) || $u,
         wikiName => $wn,
-        displayName => $mapper->can('getDisplayName') ? $mapper->getDisplayName($u) : $wn,
-        email => join(', ', $session->{users}->getEmails($u)),
+        displayName => $mapper->can('getDisplayName') ? ($mapper->getDisplayName($u) || $wn) : $wn,
+        email => join(', ', $session->{users}->getEmails($u)) || '',
     };
 }
 
