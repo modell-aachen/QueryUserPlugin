@@ -185,13 +185,13 @@ sub _QUERYUSERS {
 
     my @fields = split(/\s*,\s*/, $params->{fields} || 'wikiName,displayName');
 
-    my $type = $params->{type} || 'users';
+    my $type = $params->{type} || 'user';
     my $limit = $params->{limit} || 0;
 
     my $basemapping = $params->{basemapping} || 'skip';
 
     my @list;
-    push @list, _users($session, $basemapping) if $type eq 'users' || $type eq 'any';
+    push @list, _users($session, $basemapping) if $type eq 'user' || $type eq 'any';
     push @list, _groups($session) if $type eq 'groups' || $type eq 'any';
 
     my $format = $params->{format} || '$displayName';
@@ -200,9 +200,19 @@ sub _QUERYUSERS {
     my $separator = $params->{separator} || ', ';
     my $sort = $params->{sort} || '';
     my @out;
+    my @groupfilter = split /,/, $params->{ingroup};
     for my $o (_filter($filter, \@fields, @list)) {
         my $entry = _render($o, $o->{type} eq 'user' ? $userformat : $groupformat);
-        push @out, $entry;
+        if(@groupfilter && $o->{type} eq 'user'){
+            foreach my $g (@groupfilter) {
+                if(Foswiki::Func::isGroupMember($g,$o->{loginName} || $o->{cUID})){
+                    push @out, $entry;
+                    last;
+                }
+            }
+        }else{
+            push @out, $entry;
+        }
         last if $limit && @out >= $limit;
     }
     if($sort eq 'asc' ){
