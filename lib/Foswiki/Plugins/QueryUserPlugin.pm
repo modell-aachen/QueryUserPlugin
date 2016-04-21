@@ -200,7 +200,7 @@ sub _QUERYUSERS {
     my $separator = $params->{separator} || ', ';
     my $sort = $params->{sort} || '';
     my @out;
-    my @groupfilter = split /,/, $params->{ingroup};
+    my @groupfilter = defined $params->{ingroup} ? split /,/, $params->{ingroup} : ();
     for my $o (_filter($filter, \@fields, @list)) {
         my $entry = _render($o, $o->{type} eq 'user' ? $userformat : $groupformat);
         if(@groupfilter && $o->{type} eq 'user'){
