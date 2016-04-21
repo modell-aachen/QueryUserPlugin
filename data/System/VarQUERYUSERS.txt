@@ -15,5 +15,6 @@
    * Parameter =userformat= / =groupformat= - separate formats for use when both users and groups are returned; if not given, the normal =format= parameter is used.
    * Parameter =separator= - string to be inserted between results.
    * Parameter =limit= - number of results to render; defaults to all.
+   * Parameter =ingroup= - filters users by group(s) (comma separated list).
    * Example: =%<nop>QUERYUSERS{"pete" format="| $wikiName logs in as $loginName |" separator="$n"}%=
    * Related: QueryUserPlugin
