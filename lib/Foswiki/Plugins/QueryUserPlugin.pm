@@ -96,6 +96,22 @@ sub _users {
         }
         push @res, _userinfo($session, $u);
     }
+    my $extraUsers = Foswiki::Func::getPreferencesValue('EXTRA_USERS');
+    if ($extraUsers) {
+      for my $var (split /,/, $extraUsers) {
+        $var =~ s/(?:^\s*|\s*$)//g;
+        next unless $var;
+        my ($k, $v) = split(/\s*=\s*/, $var, 2);
+        my $user = {
+          type => 'user',
+          cUID => $k,
+          loginName => $k,
+          wikiName => $k,
+          displayName => $v,
+        };
+        push @res, $user;
+      }
+    }
     @res;
 }
 
