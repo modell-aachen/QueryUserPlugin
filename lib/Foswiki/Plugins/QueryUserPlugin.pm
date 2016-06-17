@@ -96,6 +96,7 @@ sub _users {
         }
         push @res, _userinfo($session, $u);
     }
+    # Add dummy users from preferences
     my $extraUsers = Foswiki::Func::getPreferencesValue('EXTRA_USERS');
     if ($extraUsers) {
       for my $var (split /,/, $extraUsers) {
@@ -106,7 +107,7 @@ sub _users {
           type => 'user',
           cUID => $k,
           loginName => $k,
-          wikiName => $k,
+          wikiName => Foswiki::Func::getWikiName($k),
           displayName => $v,
         };
         push @res, $user;
