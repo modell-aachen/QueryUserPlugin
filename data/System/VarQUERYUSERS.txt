@@ -17,4 +17,6 @@
    * Parameter =limit= - number of results to render; defaults to all.
    * Parameter =ingroup= - filters users by group(s) (comma separated list).
    * Example: =%<nop>QUERYUSERS{"pete" format="| $wikiName logs in as $loginName |" separator="$n"}%=
+   * To import =Dummy Users= you can use the =EXTRA_USERS= Preference. You can pass a comma-separated list of users (wikiname and displayname separated by a '=' sign).
+    Example: <pre>   * Set EXTRA_USERS = DummyUser=Dummy User,MoreUser=Mehr User</pre>
    * Related: QueryUserPlugin
