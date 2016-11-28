@@ -48,13 +48,14 @@ sub treatFile {
     my ($formraw) = $l =~ /^%META:FORM\{name="(.*?)"\}%$/m;
     my $fields = [];
     if ($formraw) {
-        $formraw = "$web.$formraw" unless $formraw =~ /\./;
+        my ($fweb, $ftopic) = Foswiki::Func::normalizeWebTopicName($web, $formraw);
+        $formraw = "$fweb.$ftopic";
         $fields = $formcache{$formraw};
         if (!$fields) {
             $fields = [];
             my $form;
             eval {
-                $form = Foswiki::Form->new($session, Foswiki::Func::normalizeWebTopicName(undef, $formraw));
+                $form = Foswiki::Form->new($session, $fweb, $ftopic);
             };
             unless ($@) {
                 for my $f (@{$form->getFields}) {
