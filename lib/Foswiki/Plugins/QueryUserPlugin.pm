@@ -62,7 +62,7 @@ sub indexAttachmentOrTopicHandler {
 
 sub _filter {
     my ($filter, $fields, @list) = @_;
-    my @parts = map { my $f = $_; sub { $_[0]{$f} =~ /$_[1]/i } } @$fields;
+    my @parts = map { my $f = $_; sub { $_[0]{$f} && $_[0]{$f} =~ /$_[1]/i } } @$fields;
     return grep {
         my $o = $_;
         grep { $_->($o, $filter) } @parts
