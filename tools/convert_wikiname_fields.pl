@@ -191,10 +191,11 @@ sub _mapTag {
     my ($attrString, %map) = @_;
     my $attr = Foswiki::Attrs->new($attrString);
     while (my ($k, $v) = each(%$attr)) {
+        my $last = 0; # XXX workaround for 'last' command skipping next iteration
         while (my ($mk, $mv) = each(%map)) {
             next unless $k =~ /$mk/;
-            $attr->{$k} = $mv ? _mapUserMulti($v) : _mapUser($v);
-            last;
+            $attr->{$k} = $mv ? _mapUserMulti($v) : _mapUser($v) unless $last;
+            $last = 1; # last;
         }
     }
     $attr->stringify;
