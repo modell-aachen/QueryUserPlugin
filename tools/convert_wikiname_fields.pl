@@ -10,7 +10,10 @@
 #
 # Only PlainFileStore is supported. Please convert before you do this.
 #
-# No arguments required.
+# No arguments required - unless you want virtualhosting, then either pass
+# --host=all or --host=my.host.name
+# or set a host environment variable.
+#
 # No backups are made; that's your job.
 
 # Copyright 2015 Modell Aachen GmbH
@@ -30,12 +33,73 @@ BEGIN {
 }
 
 my %formcache;
+my $session;
+my %users;
+my $usercount;
+
+my $hostname = $ENV{host};
+unless ($hostname) {
+    foreach my $arg (@ARGV) {
+        if($arg =~ m#(?:--)?host=(\S+)#) {
+            $hostname = $1;
+        }
+    }
+}
 
 use Foswiki ();
-my $session = Foswiki->new('admin');
+if ($hostname) {
+    require Foswiki::Contrib::VirtualHostingContrib;
+    require Foswiki::Contrib::VirtualHostingContrib::VirtualHost;
+}
 
-my %users;
-my $usercount = 0;
+sub convert {
+    $session = Foswiki->new('admin');
+
+    %users = ();
+    $usercount = 0;
+
+    my $uit = Foswiki::Func::eachUser();
+    while ($uit->hasNext) {
+        my $u = $uit->next;
+        my $cuid = Foswiki::Func::getCanonicalUserID($u);
+        $users{$u} = $cuid;
+        $usercount++;
+    }
+    print STDERR "Loaded information about $usercount users.\n";
+
+    my $keepmsg = 1;
+    for my $web (Foswiki::Func::getListOfWebs("user")) {
+        TOPIC: for my $topic (Foswiki::Func::getTopicList($web)) {
+            my $topicfile = "$Foswiki::cfg{DataDir}/$web/$topic.txt";
+            my $pfvdir = "$Foswiki::cfg{DataDir}/$web/$topic,pfv";
+
+            my $haspfv = -d $pfvdir;
+            opendir(my $pfvh, $pfvdir) or warn("Can't read revisions dir $pfvdir: $!") if $haspfv;
+
+            if (!$keepmsg) {
+                print STDERR "\033[F\033[K";
+            }
+            $keepmsg = 0;
+            print STDERR "$web.$topic: (current)";
+
+            my $res = treatFile($web, $topicfile);
+            $keepmsg = 1 if !$res || $res == 2;
+            next unless $res;
+            my $f;
+            while ($haspfv and $f = readdir($pfvh)) {
+                next unless $f =~ /^\d+$/;
+                print STDERR "($f)";
+                $res = treatFile($web, "$pfvdir/$f");
+                $keepmsg = 1 if !$res || $res == 2;
+                next TOPIC unless $res;
+            }
+            print STDERR ".\n";
+        }
+    }
+    if (!$keepmsg) {
+        print STDERR "\033[F\033[K";
+    }
+}
 
 # Rewrite a file (.txt or PFS version file)
 sub treatFile {
@@ -144,46 +208,14 @@ sub _mapPref {
     _mapUserMulti($v);
 }
 
-my $uit = Foswiki::Func::eachUser();
-while ($uit->hasNext) {
-    my $u = $uit->next;
-    my $cuid = Foswiki::Func::getCanonicalUserID($u);
-    $users{$u} = $cuid;
-    $usercount++;
-}
-print STDERR "Loaded information about $usercount users.\n";
-
-my $keepmsg = 1;
-for my $web (Foswiki::Func::getListOfWebs("user")) {
-    TOPIC: for my $topic (Foswiki::Func::getTopicList($web)) {
-        my $topicfile = "$Foswiki::cfg{DataDir}/$web/$topic.txt";
-        my $pfvdir = "$Foswiki::cfg{DataDir}/$web/$topic,pfv";
-
-        my $haspfv = -d $pfvdir;
-        opendir(my $pfvh, $pfvdir) or warn("Can't read revisions dir $pfvdir: $!") if $haspfv;
-
-        if (!$keepmsg) {
-            print STDERR "\033[F\033[K";
-        }
-        $keepmsg = 0;
-        print STDERR "$web.$topic: (current)";
-
-        my $res = treatFile($web, $topicfile);
-        $keepmsg = 1 if !$res || $res == 2;
-        next unless $res;
-        my $f;
-        while ($haspfv and $f = readdir($pfvh)) {
-            next unless $f =~ /^\d+$/;
-            print STDERR "($f)";
-            $res = treatFile($web, "$pfvdir/$f");
-            $keepmsg = 1 if !$res || $res == 2;
-            next TOPIC unless $res;
-        }
-        print STDERR ".\n";
+if ($hostname) {
+    if($hostname eq 'all') {
+        Foswiki::Contrib::VirtualHostingContrib::VirtualHost->run_on_each(\&convert);
+    } else {
+        Foswiki::Contrib::VirtualHostingContrib::VirtualHost->run_on($hostname, \&convert);
     }
-}
-if (!$keepmsg) {
-    print STDERR "\033[F\033[K";
+} else {
+    convert();
 }
 
 print STDERR "\nDone.\n";
