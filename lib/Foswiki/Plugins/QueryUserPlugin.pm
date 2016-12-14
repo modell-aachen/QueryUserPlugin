@@ -83,6 +83,40 @@ sub _userinfo {
     };
 }
 
+sub _usersUnified {
+    my $session = shift;
+    my $basemapping = shift;
+    my $term = shift;
+    my @res;
+    require Foswiki::UnifiedAuth;
+    foreach my $u ( @{Foswiki::UnifiedAuth::new()->queryUser($term)} ) {
+        $u = $u->[0];
+        if ($u =~ /^BaseUserMapping_(\d+)$/) {
+            next if $basemapping eq 'skip';
+            next if $basemapping eq 'adminonly' && $1 ne '333';
+        }
+        push @res, _userinfo($session, $u);
+    }
+    # Add dummy users from preferences
+    my $extraUsers = Foswiki::Func::getPreferencesValue('EXTRA_USERS');
+    if ($extraUsers) {
+      for my $var (split /,/, $extraUsers) {
+        $var =~ s/(?:^\s*|\s*$)//g;
+        next unless $var;
+        my ($k, $v) = split(/\s*=\s*/, $var, 2);
+        my $user = {
+          type => 'user',
+          cUID => $k,
+          loginName => $k,
+          wikiName => Foswiki::Func::getWikiName($k),
+          displayName => $v,
+        };
+        push @res, $user;
+      }
+    }
+    @res;
+}
+
 sub _users {
     my $session = shift;
     my $basemapping = shift;
@@ -193,6 +227,7 @@ sub _QUERYUSERS {
         my $q = $session->{request};
         $filter = $q->param($params->{urlparam});
     }
+    my $originalFilter = $filter;
     my $exact = Foswiki::Func::isTrue($params->{exact});
     if ($filter && ($exact || !Foswiki::Func::isTrue($params->{regex}))) {
         $filter = quotemeta $filter;
@@ -208,8 +243,15 @@ sub _QUERYUSERS {
     my $basemapping = $params->{basemapping} || 'skip';
 
     my @list;
-    push @list, _users($session, $basemapping) if $type eq 'user' || $type eq 'any';
-    push @list, _groups($session) if $type eq 'groups' || $type eq 'any';
+    if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
+        push @list, _usersUnified($session, $basemapping, $originalFilter) if $type eq 'user' || $type eq 'any';
+        $filter = '.*'; # XXX
+        # TODO: groups
+        # TODO: ingroup (we limited rows, so need to check in UnifiedAuth)
+    } else {
+        push @list, _users($session, $basemapping) if $type eq 'user' || $type eq 'any';
+        push @list, _groups($session) if $type eq 'groups' || $type eq 'any';
+    }
 
     my $format = $params->{format} || '$displayName';
     my $userformat = $params->{userformat} || $format;
