@@ -14,6 +14,10 @@ our $RELEASE = '0.1';
 our $SHORTDESCRIPTION = 'Provides a macro to list/filter users.';
 our $NO_PREFS_IN_TOPIC = 1;
 
+our $SITEPREFS = {
+  QUERYUSERS_DEFAULT_FIELDS => 'wikiName,displayName',
+};
+
 sub initPlugin {
     my ( $topic, $web, $user, $installWeb ) = @_;
 
@@ -62,7 +66,12 @@ sub indexAttachmentOrTopicHandler {
 
 sub _filter {
     my ($filter, $fields, @list) = @_;
-    my @parts = map { my $f = $_; sub { $_[0]{$f} && $_[0]{$f} =~ /$_[1]/i } } @$fields;
+    my @parts = map {
+        my $f = $_;
+        sub {
+            $_[0]{$f} && $_[0]{$f} =~ /$_[1]/i
+        }
+    } @$fields;
     return grep {
         my $o = $_;
         grep { $_->($o, $filter) } @parts
@@ -89,7 +98,7 @@ sub _usersUnified {
     my $opts = shift;
     my @res;
     require Foswiki::UnifiedAuth;
-    foreach my $u ( @{Foswiki::UnifiedAuth::new()->queryUser($opts->{term}, $opts->{limit}, $opts->{page})} ) {
+    foreach my $u ( @{Foswiki::UnifiedAuth::new()->queryUser($opts->{term}, $opts->{limit}, $opts->{page}, $opts->{searchable_fields})} ) {
         $u = $u->[0];
         if ($u =~ /^BaseUserMapping_(\d+)$/) {
             next if $basemapping eq 'skip';
@@ -242,7 +251,9 @@ sub _QUERYUSERS {
     $filter = '.*' if !defined $filter || $filter eq '';
     $filter = "^$filter\$" if $exact;
 
-    my @fields = split(/\s*,\s*/, $params->{fields} || 'wikiName,displayName');
+    my $defaultFields = Foswiki::Func::getPreferencesValue('QUERYUSERS_DEFAULT_FIELDS');
+    my @fields = split(/\s*,\s*/, $params->{fields} || $defaultFields);
+    push @{$ua_opts->{searchable_fields}}, @fields;
 
     my $type = $params->{type} || 'user';
     my $limit = $params->{limit} || 0;
