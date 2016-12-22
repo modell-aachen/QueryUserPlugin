@@ -86,10 +86,10 @@ sub _userinfo {
 sub _usersUnified {
     my $session = shift;
     my $basemapping = shift;
-    my $term = shift;
+    my $opts = shift;
     my @res;
     require Foswiki::UnifiedAuth;
-    foreach my $u ( @{Foswiki::UnifiedAuth::new()->queryUser($term)} ) {
+    foreach my $u ( @{Foswiki::UnifiedAuth::new()->queryUser($opts->{term}, $opts->{limit}, $opts->{page})} ) {
         $u = $u->[0];
         if ($u =~ /^BaseUserMapping_(\d+)$/) {
             next if $basemapping eq 'skip';
@@ -169,6 +169,7 @@ sub _renderOneValue {
     $_[0] =~ s/\$json:$name/my $x = JSON->new->allow_nonref->encode($val); $x =~ s#^"##; $x =~ s#"$##; $x/eg;
     $_[0] =~ s/\$$name/$val/g;
 }
+
 sub _render {
     my ($o, $entry) = @_;
     $entry =~ s/\$pref\(($Foswiki::regex{tagNameRegex})(?:,([^\)]+))?\)/
@@ -222,10 +223,16 @@ sub _RENDERUSER {
 sub _QUERYUSERS {
     my ($session, $params, $topic, $web, $topicObject) = @_;
 
+    my $ua_opts;
     my $filter = $params->{_DEFAULT};
     if ($params->{urlparam}) {
         my $q = $session->{request};
         $filter = $q->param($params->{urlparam});
+        $ua_opts = {
+            term => $filter,
+            limit => $q->param('limit'),
+            page => $q->param('page') || 0
+        };
     }
     my $originalFilter = $filter;
     my $exact = Foswiki::Func::isTrue($params->{exact});
@@ -244,7 +251,7 @@ sub _QUERYUSERS {
 
     my @list;
     if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
-        push @list, _usersUnified($session, $basemapping, $originalFilter) if $type eq 'user' || $type eq 'any';
+        push @list, _usersUnified($session, $basemapping, $ua_opts) if $type eq 'user' || $type eq 'any';
         $filter = '.*'; # XXX
         # TODO: groups
         # TODO: ingroup (we limited rows, so need to check in UnifiedAuth)
