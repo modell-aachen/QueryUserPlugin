@@ -121,8 +121,6 @@ sub _usersUnified {
 
         if ($entry->{type} eq 'user') {
             my $l = $entry->{loginName};
-            next if $basemapping eq 'skip' && ($l eq $Foswiki::cfg{AdminUserLogin} || $l eq $Foswiki::cfg{DefaultUserLogin});
-            next if $basemapping eq 'adminonly' && $l ne $Foswiki::cfg{AdminUserLogin};
         } else {
             delete $entry->{email};
             delete $entry->{loginName};
@@ -255,6 +253,7 @@ sub _QUERYUSERS {
     my @list;
     if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
         $ua_opts->{type} = $type;
+        $ua_opts->{basemapping} = $basemapping;
         push @list, _usersUnified($session, $basemapping, $ua_opts);
         $filter = '.*'; # XXX
         # TODO: ingroup (we limited rows, so need to check in UnifiedAuth)
