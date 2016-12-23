@@ -132,26 +132,6 @@ sub _usersUnified {
         push @res, $entry;
     }
 
-    unless ($opts->{type} eq 'groups') {
-        # Add dummy users from preferences
-        my $extraUsers = Foswiki::Func::getPreferencesValue('EXTRA_USERS');
-        if ($extraUsers) {
-          for my $var (split /,/, $extraUsers) {
-            $var =~ s/(?:^\s*|\s*$)//g;
-            next unless $var;
-            my ($k, $v) = split(/\s*=\s*/, $var, 2);
-            my $user = {
-              type => 'user',
-              cUID => '00000000-0000-0000-0000-000000000000',
-              loginName => $k,
-              wikiName => Foswiki::Func::getWikiName($k),
-              displayName => $v,
-            };
-            push @res, $user;
-          }
-        }
-    }
-
     @res;
 }
 
@@ -167,23 +147,6 @@ sub _users {
             next if $basemapping eq 'adminonly' && $1 ne '333';
         }
         push @res, _userinfo($session, $u);
-    }
-    # Add dummy users from preferences
-    my $extraUsers = Foswiki::Func::getPreferencesValue('EXTRA_USERS');
-    if ($extraUsers) {
-      for my $var (split /,/, $extraUsers) {
-        $var =~ s/(?:^\s*|\s*$)//g;
-        next unless $var;
-        my ($k, $v) = split(/\s*=\s*/, $var, 2);
-        my $user = {
-          type => 'user',
-          cUID => $k,
-          loginName => $k,
-          wikiName => Foswiki::Func::getWikiName($k),
-          displayName => $v,
-        };
-        push @res, $user;
-      }
     }
     @res;
 }
