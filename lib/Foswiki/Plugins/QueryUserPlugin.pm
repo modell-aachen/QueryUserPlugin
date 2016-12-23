@@ -112,25 +112,27 @@ sub _rewriteResult {
 }
 
 sub _usersUnified {
-    my ($session, $basemapping, $opts) = @_;
+    my ($session, $basemapping, $opts, $userformat, $groupformat) = @_;
     my @res;
     require Foswiki::UnifiedAuth;
-    my $list = Foswiki::UnifiedAuth::new()->queryUser($opts);
+    my ($list, $count) = Foswiki::UnifiedAuth::new()->queryUser($opts);
     foreach my $entry (@$list) {
         $entry = _rewriteResult($entry);
-
+        my $rendered;
         if ($entry->{type} eq 'user') {
             my $l = $entry->{loginName};
+            $rendered = _render($entry, $userformat);
         } else {
             delete $entry->{email};
             delete $entry->{loginName};
             delete $entry->{displayName};
+            $rendered = _render($entry, $groupformat);
         }
 
-        push @res, $entry;
+        push @res, $rendered;
     }
 
-    @res;
+    (\@res, $count);
 }
 
 sub _users {
@@ -247,48 +249,65 @@ sub _QUERYUSERS {
 
     my $type = $params->{type} || 'user';
     my $limit = $params->{limit} || 0;
-
-    my $basemapping = $params->{basemapping} || 'skip';
-
-    my @list;
-    if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
-        $ua_opts->{type} = $type;
-        $ua_opts->{basemapping} = $basemapping;
-        push @list, _usersUnified($session, $basemapping, $ua_opts);
-        $filter = '.*'; # XXX
-        # TODO: ingroup (we limited rows, so need to check in UnifiedAuth)
-    } else {
-        push @list, _users($session, $basemapping) if $type eq 'user' || $type eq 'any';
-        push @list, _groups($session) if $type eq 'groups' || $type eq 'any';
-    }
-
     my $format = $params->{format} || '$displayName';
     my $userformat = $params->{userformat} || $format;
     my $groupformat = $params->{groupformat} || $format;
     my $separator = $params->{separator} || ', ';
     my $sort = $params->{sort} || '';
-    my @out;
-    my @groupfilter = defined $params->{ingroup} ? split /,/, $params->{ingroup} : ();
-    for my $o (_filter($filter, \@fields, @list)) {
-        my $entry = _render($o, $o->{type} eq 'user' ? $userformat : $groupformat);
-        if(@groupfilter && $o->{type} eq 'user'){
-            foreach my $g (@groupfilter) {
-                if(Foswiki::Func::isGroupMember($g,$o->{loginName} || $o->{cUID})){
-                    push @out, $entry;
-                    last;
+    my $basemapping = $params->{basemapping} || 'skip';
+
+    my $count;
+    my $out;
+    if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
+        $ua_opts->{type} = $type;
+        $ua_opts->{basemapping} = $basemapping;
+        ($out, $count) = _usersUnified($session, $basemapping, $ua_opts, $userformat, $groupformat);
+    } else {
+        my @list;
+        $out = [];
+        push @list, _users($session, $basemapping) if $type eq 'user' || $type eq 'any';
+        push @list, _groups($session) if $type eq 'groups' || $type eq 'any';
+
+        my @groupfilter = defined $params->{ingroup} ? split /,/, $params->{ingroup} : ();
+        for my $o (_filter($filter, \@fields, @list)) {
+            my $entry = _render($o, $o->{type} eq 'user' ? $userformat : $groupformat);
+            if(@groupfilter && $o->{type} eq 'user'){
+                foreach my $g (@groupfilter) {
+                    if(Foswiki::Func::isGroupMember($g,$o->{loginName} || $o->{cUID})){
+                        push @$out, $entry;
+                        $count ++;
+                        last;
+                    }
                 }
+            }else{
+                # XXX this will not go well when sorting into the users list
+                push @$out, $entry unless $limit && @$out >= $limit;
+                $count ++;
             }
-        }else{
-            push @out, $entry;
         }
-        last if $limit && @out >= $limit;
+        if($sort eq 'asc' ){
+            @$out = sort { $a cmp $b } @$out;
+        }elsif($sort eq 'desc'){
+            @$out = reverse(sort { $a cmp $b } @$out);
+        }
     }
-    if($sort eq 'asc' ){
-        @out = sort { $a cmp $b } @out;
-    }elsif($sort eq 'desc'){
-        @out = reverse(sort { $a cmp $b } @out);
+
+    my $formatted = Foswiki::Func::decodeFormatTokens(join($separator, @$out));
+
+    my @result = ($formatted);
+    if(defined $params->{header}) {
+        my $header = $params->{header};
+        $header =~ s#\$count#$count#g;
+        unshift @result, $header;
     }
-    return Foswiki::Func::decodeFormatTokens(join($separator, @out));
+
+    if(defined $params->{footer}) {
+        my $footer = $params->{footer};
+        $footer =~ s#\$count#$count#g;
+        push @result, $footer;
+    }
+
+    return join('', @result);
 }
 
 sub restQuery {
