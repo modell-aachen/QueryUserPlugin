@@ -224,8 +224,8 @@ sub _RENDERUSER {
 sub _QUERYUSERS {
     my ($session, $params, $topic, $web, $topicObject) = @_;
 
-    my $ua_opts;
     my $filter = $params->{_DEFAULT};
+    my $ua_opts = {term => $filter};
     if ($params->{urlparam}) {
         my $q = $session->{request};
         $filter = $q->param($params->{urlparam});
