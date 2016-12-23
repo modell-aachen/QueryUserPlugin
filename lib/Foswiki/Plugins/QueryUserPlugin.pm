@@ -142,7 +142,7 @@ sub _usersUnified {
             my ($k, $v) = split(/\s*=\s*/, $var, 2);
             my $user = {
               type => 'user',
-              cUID => $k,
+              cUID => '00000000-0000-0000-0000-000000000000',
               loginName => $k,
               wikiName => Foswiki::Func::getWikiName($k),
               displayName => $v,
