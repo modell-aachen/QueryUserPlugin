@@ -183,8 +183,8 @@ sub _render {
     _renderOneValue($entry, 'cUID', $o->{cUID});
     _renderOneValue($entry, 'loginName', $o->{loginName} || $o->{cUID});
     _renderOneValue($entry, 'email', $o->{email} || '');
-    _renderOneValue($entry, 'wikiName', $o->{wikiName} || $o->{cUID});
-    _renderOneValue($entry, 'displayName', $o->{displayName} || $o->{cUID});
+    _renderOneValue($entry, 'wikiName', $o->{wikiName} || $o->{loginName} || $o->{cUID});
+    _renderOneValue($entry, 'displayName', $o->{displayName} || $o->{wikiName} || $o->{loginName} || $o->{cUID});
     $entry;
 }
 
