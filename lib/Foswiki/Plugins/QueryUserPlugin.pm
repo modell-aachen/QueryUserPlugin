@@ -199,7 +199,15 @@ sub _RENDERUSER {
     }
 
     my $info;
-    if ($type eq 'user') {
+    if($cUID !~ m#\S#) {
+        # %RENDERUSER{"" ...}% -> return (formatted) empty string
+        $info = {
+            type => $type,
+            cUID => '',
+            wikiName => '',
+            displayName => '',
+        };
+    } elsif ($type eq 'user') {
         my $convert = $params->{convert};
         if (defined $params->{_DEFAULT} && (Foswiki::Func::isTrue($convert, 0) || $Foswiki::cfg{Plugins}{QueryUserPlugin}{ForceConvert})) {
             $cUID = Foswiki::Func::getCanonicalUserID($cUID);
