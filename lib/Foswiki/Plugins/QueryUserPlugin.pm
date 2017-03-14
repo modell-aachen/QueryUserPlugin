@@ -14,6 +14,10 @@ our $RELEASE = '0.1';
 our $SHORTDESCRIPTION = 'Provides a macro to list/filter users.';
 our $NO_PREFS_IN_TOPIC = 1;
 
+our $SITEPREFS = {
+  QUERYUSERS_DEFAULT_FIELDS => 'wikiName,displayName',
+};
+
 sub initPlugin {
     my ( $topic, $web, $user, $installWeb ) = @_;
 
@@ -62,7 +66,12 @@ sub indexAttachmentOrTopicHandler {
 
 sub _filter {
     my ($filter, $fields, @list) = @_;
-    my @parts = map { my $f = $_; sub { $_[0]{$f} =~ /$_[1]/i } } @$fields;
+    my @parts = map {
+        my $f = $_;
+        sub {
+            $_[0]{$f} && $_[0]{$f} =~ /$_[1]/i
+        }
+    } @$fields;
     return grep {
         my $o = $_;
         grep { $_->($o, $filter) } @parts
@@ -83,6 +92,49 @@ sub _userinfo {
     };
 }
 
+my $rewrite_attrubutes = {
+    'cuid' => 'cUID',
+    'loginname' => 'loginName',
+    'wikiname' => 'wikiName',
+    'displayname' => 'displayName'
+};
+
+sub _rewriteResult {
+    my $entry = shift;
+
+    while (my ($k, $v) = each %$rewrite_attrubutes) {
+        next unless defined $entry->{$k};
+        $entry->{$v} = $entry->{$k};
+        delete $entry->{$k};
+    }
+
+    $entry;
+}
+
+sub _usersUnified {
+    my ($session, $basemapping, $opts, $userformat, $groupformat) = @_;
+    my @res;
+    require Foswiki::UnifiedAuth;
+    my ($list, $count) = Foswiki::UnifiedAuth::new()->queryUser($opts);
+    foreach my $entry (@$list) {
+        $entry = _rewriteResult($entry);
+        my $rendered;
+        if ($entry->{type} eq 'user') {
+            my $l = $entry->{loginName};
+            $rendered = _render($entry, $userformat);
+        } else {
+            delete $entry->{email};
+            delete $entry->{loginName};
+            delete $entry->{displayName};
+            $rendered = _render($entry, $groupformat);
+        }
+
+        push @res, $rendered;
+    }
+
+    (\@res, $count);
+}
+
 sub _users {
     my $session = shift;
     my $basemapping = shift;
@@ -95,23 +147,6 @@ sub _users {
             next if $basemapping eq 'adminonly' && $1 ne '333';
         }
         push @res, _userinfo($session, $u);
-    }
-    # Add dummy users from preferences
-    my $extraUsers = Foswiki::Func::getPreferencesValue('EXTRA_USERS');
-    if ($extraUsers) {
-      for my $var (split /,/, $extraUsers) {
-        $var =~ s/(?:^\s*|\s*$)//g;
-        next unless $var;
-        my ($k, $v) = split(/\s*=\s*/, $var, 2);
-        my $user = {
-          type => 'user',
-          cUID => $k,
-          loginName => $k,
-          wikiName => Foswiki::Func::getWikiName($k),
-          displayName => $v,
-        };
-        push @res, $user;
-      }
     }
     @res;
 }
@@ -135,6 +170,7 @@ sub _renderOneValue {
     $_[0] =~ s/\$json:$name/my $x = JSON->new->allow_nonref->encode($val); $x =~ s#^"##; $x =~ s#"$##; $x/eg;
     $_[0] =~ s/\$$name/$val/g;
 }
+
 sub _render {
     my ($o, $entry) = @_;
     $entry =~ s/\$pref\(($Foswiki::regex{tagNameRegex})(?:,([^\)]+))?\)/
@@ -147,8 +183,8 @@ sub _render {
     _renderOneValue($entry, 'cUID', $o->{cUID});
     _renderOneValue($entry, 'loginName', $o->{loginName} || $o->{cUID});
     _renderOneValue($entry, 'email', $o->{email} || '');
-    _renderOneValue($entry, 'wikiName', $o->{wikiName} || $o->{cUID});
-    _renderOneValue($entry, 'displayName', $o->{displayName} || $o->{cUID});
+    _renderOneValue($entry, 'wikiName', $o->{wikiName} || $o->{loginName} || $o->{cUID});
+    _renderOneValue($entry, 'displayName', $o->{displayName} || $o->{wikiName} || $o->{loginName} || $o->{cUID});
     $entry;
 }
 
@@ -163,19 +199,37 @@ sub _RENDERUSER {
     }
 
     my $info;
-    if ($type eq 'user') {
+    if($cUID !~ m#\S#) {
+        # %RENDERUSER{"" ...}% -> return (formatted) empty string
+        $info = {
+            type => $type,
+            cUID => '',
+            wikiName => '',
+            displayName => '',
+        };
+    } elsif ($type eq 'user') {
         my $convert = $params->{convert};
         if (defined $params->{_DEFAULT} && (Foswiki::Func::isTrue($convert, 0) || $Foswiki::cfg{Plugins}{QueryUserPlugin}{ForceConvert})) {
             $cUID = Foswiki::Func::getCanonicalUserID($cUID);
         }
         $info = _userinfo($session, $cUID);
     } else {
-        $info = {
-            type => 'group',
-            cUID => $cUID,
-            wikiName => $cUID,
-            displayName => $cUID,
-        };
+        if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
+            my $mapper = $session->{users}->{mapping};
+            $info = {
+                type => 'group',
+                cUID => $cUID,
+                wikiName => $cUID,
+                displayName => $mapper->getDisplayName($cUID) || $cUID,
+            };
+        } else {
+            $info = {
+                type => 'group',
+                cUID => $cUID,
+                wikiName => $cUID,
+                displayName => $cUID,
+            };
+        }
     }
 
     my $format = $params->{format} || '$displayName';
@@ -189,10 +243,17 @@ sub _QUERYUSERS {
     my ($session, $params, $topic, $web, $topicObject) = @_;
 
     my $filter = $params->{_DEFAULT};
+    my $ua_opts = {term => $filter};
     if ($params->{urlparam}) {
         my $q = $session->{request};
         $filter = $q->param($params->{urlparam});
+        $ua_opts = {
+            term => $filter,
+            limit => $q->param('limit'),
+            page => $q->param('page') || 0
+        };
     }
+    my $originalFilter = $filter;
     my $exact = Foswiki::Func::isTrue($params->{exact});
     if ($filter && ($exact || !Foswiki::Func::isTrue($params->{regex}))) {
         $filter = quotemeta $filter;
@@ -200,44 +261,72 @@ sub _QUERYUSERS {
     $filter = '.*' if !defined $filter || $filter eq '';
     $filter = "^$filter\$" if $exact;
 
-    my @fields = split(/\s*,\s*/, $params->{fields} || 'wikiName,displayName');
+    my $defaultFields = Foswiki::Func::getPreferencesValue('QUERYUSERS_DEFAULT_FIELDS');
+    my @fields = split(/\s*,\s*/, $params->{fields} || $defaultFields);
+    push @{$ua_opts->{searchable_fields}}, @fields;
 
     my $type = $params->{type} || 'user';
     my $limit = $params->{limit} || 0;
-
-    my $basemapping = $params->{basemapping} || 'skip';
-
-    my @list;
-    push @list, _users($session, $basemapping) if $type eq 'user' || $type eq 'any';
-    push @list, _groups($session) if $type eq 'groups' || $type eq 'any';
-
     my $format = $params->{format} || '$displayName';
     my $userformat = $params->{userformat} || $format;
     my $groupformat = $params->{groupformat} || $format;
     my $separator = $params->{separator} || ', ';
     my $sort = $params->{sort} || '';
-    my @out;
-    my @groupfilter = defined $params->{ingroup} ? split /,/, $params->{ingroup} : ();
-    for my $o (_filter($filter, \@fields, @list)) {
-        my $entry = _render($o, $o->{type} eq 'user' ? $userformat : $groupformat);
-        if(@groupfilter && $o->{type} eq 'user'){
-            foreach my $g (@groupfilter) {
-                if(Foswiki::Func::isGroupMember($g,$o->{loginName} || $o->{cUID})){
-                    push @out, $entry;
-                    last;
+    my $basemapping = $params->{basemapping} || 'skip';
+
+    my $count;
+    my $out;
+    if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
+        $ua_opts->{type} = $type;
+        $ua_opts->{basemapping} = $basemapping;
+        $ua_opts->{ingroup} = $params->{ingroup};
+        ($out, $count) = _usersUnified($session, $basemapping, $ua_opts, $userformat, $groupformat);
+    } else {
+        my @list;
+        $out = [];
+        push @list, _users($session, $basemapping) if $type eq 'user' || $type eq 'any';
+        push @list, _groups($session) if $type eq 'groups' || $type eq 'any';
+
+        my @groupfilter = defined $params->{ingroup} ? split /,/, $params->{ingroup} : ();
+        for my $o (_filter($filter, \@fields, @list)) {
+            my $entry = _render($o, $o->{type} eq 'user' ? $userformat : $groupformat);
+            if(@groupfilter && $o->{type} eq 'user'){
+                foreach my $g (@groupfilter) {
+                    if(Foswiki::Func::isGroupMember($g,$o->{loginName} || $o->{cUID})){
+                        push @$out, $entry;
+                        $count ++;
+                        last;
+                    }
                 }
+            }else{
+                # XXX this will not go well when sorting into the users list
+                push @$out, $entry unless $limit && @$out >= $limit;
+                $count ++;
             }
-        }else{
-            push @out, $entry;
         }
-        last if $limit && @out >= $limit;
+        if($sort eq 'asc' ){
+            @$out = sort { $a cmp $b } @$out;
+        }elsif($sort eq 'desc'){
+            @$out = reverse(sort { $a cmp $b } @$out);
+        }
     }
-    if($sort eq 'asc' ){
-        @out = sort { $a cmp $b } @out;
-    }elsif($sort eq 'desc'){
-        @out = reverse(sort { $a cmp $b } @out);
+
+    my $formatted = Foswiki::Func::decodeFormatTokens(join($separator, @$out));
+
+    my @result = ($formatted);
+    if(defined $params->{header}) {
+        my $header = $params->{header};
+        $header =~ s#\$count#$count#g;
+        unshift @result, $header;
     }
-    return Foswiki::Func::decodeFormatTokens(join($separator, @out));
+
+    if(defined $params->{footer}) {
+        my $footer = $params->{footer};
+        $footer =~ s#\$count#$count#g;
+        push @result, $footer;
+    }
+
+    return join('', @result);
 }
 
 sub restQuery {

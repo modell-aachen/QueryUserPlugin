@@ -3,7 +3,7 @@
 #VarQUERYUSERS
 ---+++ QUERYUSERS -- list users from the user mapping, applying a filter
    * The =%<nop>QUERYUSERS{}%= variable is handled by the QueryUserPlugin
-   * Syntax: =%<nop>QUERYUSERS{"<filter>" urlparam="..." regex="..." type="..." format="..." userformat="..." groupformat="..." separator="..." limit="..."}%=
+   * Syntax: =%<nop>QUERYUSERS{"<filter>" urlparam="..." regex="..." type="..." format="..." userformat="..." groupformat="..." separator="..." limit="..." header="..." footer="..."}%=
    * The filter is a substring to be searched for in login name or !WikiName. Search is case-insensitive.
    * Parameter =urlparam="..."= - if set, the filter parameter is ignored and the value of the query parameter named here is used instead.
    * Parameter =regex="..."= - if set to =on=, the filter will be treated as a regular expression rather than a normal string.
@@ -16,7 +16,7 @@
    * Parameter =separator= - string to be inserted between results.
    * Parameter =limit= - number of results to render; defaults to all.
    * Parameter =ingroup= - filters users by group(s) (comma separated list).
+   * Parameter =header= - will be put in front of the result; supports =$count= for the total number of results
+   * Parameter =footer= - will be put after the result; supports =$count= for the total number of results
    * Example: =%<nop>QUERYUSERS{"pete" format="| $wikiName logs in as $loginName |" separator="$n"}%=
-   * To import =Dummy Users= you can use the =EXTRA_USERS= Preference. You can pass a comma-separated list of users (wikiname and displayname separated by a '=' sign).
-    Example: <pre>   * Set EXTRA_USERS = DummyUser=Dummy User,MoreUser=Mehr User</pre>
    * Related: QueryUserPlugin
