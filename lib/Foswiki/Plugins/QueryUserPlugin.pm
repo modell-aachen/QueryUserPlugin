@@ -279,6 +279,7 @@ sub _QUERYUSERS {
     if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
         $ua_opts->{type} = $type;
         $ua_opts->{basemapping} = $basemapping;
+        $ua_opts->{ingroup} = $params->{ingroup};
         ($out, $count) = _usersUnified($session, $basemapping, $ua_opts, $userformat, $groupformat);
     } else {
         my @list;
