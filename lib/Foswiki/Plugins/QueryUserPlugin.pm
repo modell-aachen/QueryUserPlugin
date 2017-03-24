@@ -214,12 +214,22 @@ sub _RENDERUSER {
         }
         $info = _userinfo($session, $cUID);
     } else {
-        $info = {
-            type => 'group',
-            cUID => $cUID,
-            wikiName => $cUID,
-            displayName => $cUID,
-        };
+        if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
+            my $mapper = $session->{users}->{mapping};
+            $info = {
+                type => 'group',
+                cUID => $cUID,
+                wikiName => $cUID,
+                displayName => $mapper->getDisplayName($cUID) || $cUID,
+            };
+        } else {
+            $info = {
+                type => 'group',
+                cUID => $cUID,
+                wikiName => $cUID,
+                displayName => $cUID,
+            };
+        }
     }
 
     my $format = $params->{format} || '$displayName';
@@ -269,6 +279,7 @@ sub _QUERYUSERS {
     if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
         $ua_opts->{type} = $type;
         $ua_opts->{basemapping} = $basemapping;
+        $ua_opts->{ingroup} = $params->{ingroup};
         ($out, $count) = _usersUnified($session, $basemapping, $ua_opts, $userformat, $groupformat);
     } else {
         my @list;

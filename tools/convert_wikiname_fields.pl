@@ -149,7 +149,7 @@ sub treatFile {
     $l =~ s/^(%META:COMMENT\{)(.*)(\}%)$/$1. _mapTag($2, '^(?:read|notified)$' => 1, '^author$' => 0) .$3/egm;
 
     # Preferences
-    $l =~ s/^(%META:PREFERENCE\{)(.*)(\}%)$/$1. _mapTag($2, '^(?:ALLOW|DENY)TOPIC' => 1) .$3/egm;
+    $l =~ s/^(%META:PREFERENCE\{)(.*)(\}%)$/$1. _mapPrefValue($2, '^(?:ALLOW|DENY)TOPIC', 'value') .$3/egm;
     $l =~ s/^((?:   )+\*\s+Set\s+(\w+)\s+=\s+)([^\015\012]*)$/$1. _mapPref($2, $3)/egm;
 
     # Task changesets
@@ -182,6 +182,20 @@ sub _mapUsersField {
     my ($f, $v) = @_;
     return _mapUserMulti($v) if $f->isMultiValued;
     return _mapUser($v);
+}
+
+# Rewrite the params list of a PREF tag.
+# This gets passed a string, a matching pattern and the replace field.
+# If a regex matches a value, the value of the given replace field would be mapped.
+sub _mapPrefValue {
+    my ($attrString, $match, $replace) = @_;
+    my $attr = Foswiki::Attrs->new($attrString);
+    while (my ($key, $value) = each(%$attr)) {
+        next unless $value =~ /$match/;
+        $attr->{$replace} = _mapUserMulti($attr->{$replace});
+        last
+    }
+    return $attr->stringify;
 }
 
 # Rewrite the params list of a META tag or macro.
