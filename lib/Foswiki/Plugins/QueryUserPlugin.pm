@@ -111,6 +111,12 @@ sub _rewriteResult {
     $entry;
 }
 
+sub _isUnifiedLogin {
+    my $isUnifiedLogin = $Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin';
+    my $isSwitchableLoginWithUA = $Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::SwitchableLogin' && $Foswiki::cfg{SwitchableLoginManagerContrib}{ActualLoginManager} eq 'Foswiki::LoginManager::UnifiedLogin';
+    return $isUnifiedLogin || $isSwitchableLoginWithUA;
+}
+
 sub _usersUnified {
     my ($session, $basemapping, $opts, $userformat, $groupformat) = @_;
     my @res;
@@ -214,7 +220,7 @@ sub _RENDERUSER {
         }
         $info = _userinfo($session, $cUID);
     } else {
-        if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
+        if(_isUnifiedLogin()) {
             my $mapper = $session->{users}->{mapping};
             $info = {
                 type => 'group',
@@ -276,7 +282,7 @@ sub _QUERYUSERS {
 
     my $count;
     my $out;
-    if($Foswiki::cfg{LoginManager} eq 'Foswiki::LoginManager::UnifiedLogin') {
+    if(_isUnifiedLogin()) {
         $ua_opts->{type} = $type;
         $ua_opts->{basemapping} = $basemapping;
         $ua_opts->{ingroup} = $params->{ingroup};
