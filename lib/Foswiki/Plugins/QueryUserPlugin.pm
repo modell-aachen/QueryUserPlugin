@@ -127,7 +127,9 @@ sub _usersUnified {
         my $rendered;
         if ($entry->{type} eq 'user') {
             my $l = $entry->{loginName};
-            delete $entry->{email} unless Foswiki::Func::isAnAdmin();
+            unless (Foswiki::Func::isAnAdmin()) {
+                delete $entry->{email} if $Foswiki::cfg{AntiSpam}{HideUserDetails} || Foswiki::Func::isGuest();
+            }
             $rendered = _render($entry, $userformat);
         } else {
             delete $entry->{email};
