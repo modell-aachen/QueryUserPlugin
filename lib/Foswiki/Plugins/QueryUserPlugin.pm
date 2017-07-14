@@ -127,6 +127,9 @@ sub _usersUnified {
         my $rendered;
         if ($entry->{type} eq 'user') {
             my $l = $entry->{loginName};
+            unless (Foswiki::Func::isAnAdmin()) {
+                delete $entry->{email} if $Foswiki::cfg{AntiSpam}{HideUserDetails} || Foswiki::Func::isGuest();
+            }
             $rendered = _render($entry, $userformat);
         } else {
             delete $entry->{email};
@@ -254,10 +257,11 @@ sub _QUERYUSERS {
         my $q = $session->{request};
         $filter = $q->param($params->{urlparam});
         $ua_opts = {
-            term => $filter,
-            limit => $q->param('limit'),
-            page => $q->param('page') || 0
+            term => $filter || '',
+            page => $q->param('page')
         };
+        my $limit = $q->param('limit');
+        $ua_opts->{limit} = $limit if defined $limit;
     }
     my $originalFilter = $filter;
     my $exact = Foswiki::Func::isTrue($params->{exact});
@@ -286,6 +290,7 @@ sub _QUERYUSERS {
         $ua_opts->{type} = $type;
         $ua_opts->{basemapping} = $basemapping;
         $ua_opts->{ingroup} = $params->{ingroup};
+        $ua_opts->{limit} = $limit unless defined $ua_opts->{limit};
         ($out, $count) = _usersUnified($session, $basemapping, $ua_opts, $userformat, $groupformat);
     } else {
         my @list;
