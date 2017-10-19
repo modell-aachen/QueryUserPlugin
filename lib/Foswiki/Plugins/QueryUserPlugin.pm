@@ -206,6 +206,7 @@ sub _RENDERUSER {
     if ($type eq 'any') {
         $type = Foswiki::Func::isGroup($cUID) ? 'group' : 'user';
     }
+    my $userIcon = $params->{usericon} || 0;
 
     my $info;
     if($cUID !~ m#\S#) {
@@ -245,6 +246,10 @@ sub _RENDERUSER {
     my $userformat = $params->{userformat} || $format;
     my $groupformat = $params->{groupformat} || $format;
 
+    if($userIcon && $Foswiki::cfg{Plugins}{EmployeesAppPlugin}{Enabled}){
+        require Foswiki::Plugins::EmployeesAppPlugin;
+        $info->{displayName} = Foswiki::Plugins::EmployeesAppPlugin->renderUserWithIcon($cUID, $topic, $web);
+    }
     return Foswiki::Func::decodeFormatTokens(_render($info, $type eq 'user' ? $userformat: $groupformat));
 }
 
