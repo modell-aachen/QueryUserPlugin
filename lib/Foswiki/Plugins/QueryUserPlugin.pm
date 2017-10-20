@@ -246,7 +246,7 @@ sub _RENDERUSER {
     my $userformat = $params->{userformat} || $format;
     my $groupformat = $params->{groupformat} || $format;
 
-    if($userIcon && $Foswiki::cfg{Plugins}{EmployeesAppPlugin}{Enabled}){
+    if($userIcon && $Foswiki::cfg{Plugins}{EmployeesAppPlugin}{Enabled} && Foswiki::Plugins::DefaultPreferencesPlugin::getSitePreferencesValue('EMPLOYEESAPP_USERICON')){
         require Foswiki::Plugins::EmployeesAppPlugin;
         $info->{displayName} = Foswiki::Plugins::EmployeesAppPlugin->renderUserWithIcon($cUID, $topic, $web);
     }
