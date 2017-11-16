@@ -248,7 +248,7 @@ sub _RENDERUSER {
 
     if($userIcon && $Foswiki::cfg{Plugins}{EmployeesAppPlugin}{Enabled} && Foswiki::Plugins::DefaultPreferencesPlugin::getSitePreferencesValue('EMPLOYEESAPP_USERICON')){
         require Foswiki::Plugins::EmployeesAppPlugin;
-        $info->{displayName} = Foswiki::Plugins::EmployeesAppPlugin->renderUserWithIcon($cUID, $topic, $web);
+        $info->{displayName} = Foswiki::Plugins::EmployeesAppPlugin::renderUserWithIcon($session, $cUID, $topic, $web);
     }
     return Foswiki::Func::decodeFormatTokens(_render($info, $type eq 'user' ? $userformat: $groupformat));
 }
