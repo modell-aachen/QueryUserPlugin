@@ -9,7 +9,6 @@ registered users.
 ---++ Defined macros
 
 %INCLUDE{"VarQUERYUSERS"}%
-
 %INCLUDE{"VarRENDERUSER"}%
 
 ---++ Configure
