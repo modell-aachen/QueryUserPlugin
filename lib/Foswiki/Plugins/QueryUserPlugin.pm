@@ -218,10 +218,7 @@ sub _RENDERUSER {
             displayName => '',
         };
     } elsif ($type eq 'user') {
-        my $convert = $params->{convert};
-        if (defined $params->{_DEFAULT} && (Foswiki::Func::isTrue($convert, 0) || $Foswiki::cfg{Plugins}{QueryUserPlugin}{ForceConvert})) {
-            $cUID = Foswiki::Func::getCanonicalUserID($cUID);
-        }
+        $cUID = Foswiki::Func::getCanonicalUserID($cUID);
         $info = _userinfo($session, $cUID);
     } else {
         if(_isUnifiedLogin()) {
