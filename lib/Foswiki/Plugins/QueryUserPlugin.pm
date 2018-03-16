@@ -333,12 +333,14 @@ sub _QUERYUSERS {
     my @result = ($formatted);
     if(defined $params->{header}) {
         my $header = $params->{header};
+        $header = Foswiki::Func::decodeFormatTokens($header);
         $header =~ s#\$count#$count#g;
         unshift @result, $header;
     }
 
     if(defined $params->{footer}) {
         my $footer = $params->{footer};
+        $footer = Foswiki::Func::decodeFormatTokens($footer);
         $footer =~ s#\$count#$count#g;
         push @result, $footer;
     }
