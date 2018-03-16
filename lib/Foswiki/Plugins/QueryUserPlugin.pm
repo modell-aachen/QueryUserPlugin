@@ -263,7 +263,8 @@ sub _QUERYUSERS {
         $filter = $q->param($params->{urlparam});
         $ua_opts = {
             term => $filter || '',
-            page => $q->param('page')
+            page => $q->param('page') || '',
+            offset => $q->param('offset') || '',
         };
         my $limit = $q->param('limit');
         $ua_opts->{limit} = $limit if defined $limit;
