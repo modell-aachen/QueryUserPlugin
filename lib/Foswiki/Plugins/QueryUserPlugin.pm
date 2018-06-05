@@ -252,7 +252,7 @@ sub _RENDERUSER {
 
     if($userIcon && $Foswiki::cfg{Plugins}{EmployeesAppPlugin}{Enabled} && Foswiki::Plugins::DefaultPreferencesPlugin::getSitePreferencesValue('EMPLOYEESAPP_USERICON')){
         require Foswiki::Plugins::EmployeesAppPlugin;
-        $info->{displayName} = Foswiki::Plugins::EmployeesAppPlugin->renderUserWithIcon($cUID, $topic, $web);
+        $info->{displayName} = Foswiki::Plugins::EmployeesAppPlugin::renderUserWithIcon($session, $cUID, $topic, $web);
     }
     return Foswiki::Func::decodeFormatTokens(_render($info, $type eq 'user' ? $userformat: $groupformat));
 }
@@ -267,7 +267,8 @@ sub _QUERYUSERS {
         $filter = $q->param($params->{urlparam});
         $ua_opts = {
             term => $filter || '',
-            page => $q->param('page')
+            page => $q->param('page') || '',
+            offset => $q->param('offset') || '',
         };
         my $limit = $q->param('limit');
         $ua_opts->{limit} = $limit if defined $limit;
@@ -336,12 +337,14 @@ sub _QUERYUSERS {
     my @result = ($formatted);
     if(defined $params->{header}) {
         my $header = $params->{header};
+        $header = Foswiki::Func::decodeFormatTokens($header);
         $header =~ s#\$count#$count#g;
         unshift @result, $header;
     }
 
     if(defined $params->{footer}) {
         my $footer = $params->{footer};
+        $footer = Foswiki::Func::decodeFormatTokens($footer);
         $footer =~ s#\$count#$count#g;
         push @result, $footer;
     }
