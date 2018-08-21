@@ -3,8 +3,8 @@
 
 %SHORTDESCRIPTION%
 
-This can be used in a helper for user autocomplete features or lists of
-registered users.
+This can be used in a helper for user autocomplete features or lists
+of registered users.
 
 ---++ Defined macros
 
