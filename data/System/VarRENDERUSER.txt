@@ -3,10 +3,9 @@
 #VarRENDERUSER
 ---+++ RENDERUSER -- format information from the user mapping
    * The =%<nop>RENDERUSER{}%= variable is handled by the QueryUserPlugin
-   * Syntax: =%<nop>RENDERUSER{"<user ID>" type="..." format="..." userformat="..." groupformat="..." usericon="0|1"}%=
-   * The user ID should be a cUID, but conversion from login name or !WikiName can be enabled (see below).
-   * When the user ID is not defined (no _default_ parameter) the current user will be used. If it is empty (=%<nop>RENDERUSER{""}%=), all placeholders will be replaced by an empty string.
-   * Parameter =convert="on|off"= - can be enabled to convert the input to a cUID if it is not.
+   * Syntax: =%<nop>RENDERUSER{"USERID" type="..." format="..." userformat="..." groupformat="..." usericon="0|1"}%=
+   * The user USERID can be a cUID, wikiname or loginname
+   * When the user USERID is not defined (no _default_ parameter) the current user will be used. If it is empty (=%<nop>RENDERUSER{""}%=), all placeholders will be replaced by an empty string.
    * Parameter =type="..."= - can be set to =user=, =group= or =any= to specify which object to render. Defaults to =user=.
    * Parameter =format="..."= - format for each result. The following placeholders can be used: =$loginName=, =$wikiName=, =$displayName=, =$cUID=, =$email=. Each placeholder can also be written like =$json:loginName= to enable escaping for use within strings in JSON notation. Additionally, a placeholder of the form =$pref(ABC)= or =$pref(ABC,default value)= will expand to the value of the =ABC= preference. Placeholders added from a preference will be expanded, too.
    * Parameter =userformat= / =groupformat= - separate formats for use when both users and groups are returned; if not given, the normal =format= parameter is used.
