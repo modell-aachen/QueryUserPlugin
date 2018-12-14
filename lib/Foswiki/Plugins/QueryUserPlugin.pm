@@ -51,19 +51,23 @@ sub initPlugin {
 sub indexAttachmentOrTopicHandler {
     my ($indexer, $doc ) = @_; # note: this is used for attachments and topics
 
-    my $author = $doc->value_for('author');
-    return unless $author;
-
-    my $session = $Foswiki::Plugins::SESSION;
-    my $cUID = Foswiki::Func::getCanonicalUserID($author);
-    my $info = _userinfo($session, $cUID);
-
-    my $format = '$displayName';
-
-    my $author_s = Foswiki::Func::decodeFormatTokens(_render($info, $format));
-    $doc->add_fields( 'author_s', $author_s );
+    _expandSolrUserFields('author', $doc);
+    _expandSolrUserFields('createauthor', $doc);
 }
 
+sub _expandSolrUserFields {
+    my ($field, $doc ) = @_; # note: this is used for attachments and topics
+    my $solrField = $doc->value_for($field);
+    return unless $solrField;
+
+    my $session = $Foswiki::Plugins::SESSION;
+    my $cUID = Foswiki::Func::getCanonicalUserID($solrField);
+    my $info = _userinfo($session, $cUID);
+
+    my $sorlField_dv_s = Foswiki::Func::decodeFormatTokens(_render($info, '$displayName'));
+    $doc->add_fields( $field.'_s', $cUID );
+    $doc->add_fields( $field.'_dv_s', $sorlField_dv_s );
+}
 sub _filter {
     my ($filter, $fields, @list) = @_;
     my @parts = map {
