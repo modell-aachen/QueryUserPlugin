@@ -251,7 +251,11 @@ sub _RENDERUSER {
         require Foswiki::Plugins::EmployeesAppPlugin;
         $info->{displayName} = Foswiki::Plugins::EmployeesAppPlugin::renderUserWithIcon($session, $cUID, $topic, $web);
     }
-    return Foswiki::Func::decodeFormatTokens(_render($info, $type eq 'user' ? $userformat: $groupformat));
+    my $returnString = Foswiki::Func::decodeFormatTokens(_render($info, $type eq 'user' ? $userformat: $groupformat));
+    eval {
+        $returnString = Encode::decode('UTF-8', $returnString, Encode::FB_CROAK);
+    };
+    return $returnString;
 }
 
 sub _QUERYUSERS {
@@ -346,7 +350,11 @@ sub _QUERYUSERS {
         push @result, $footer;
     }
 
-    return join('', @result);
+    my $returnString = join('', @result);
+    eval {
+        $returnString = Encode::decode('UTF-8', $returnString, Encode::FB_CROAK);
+    };
+    return $returnString;
 }
 
 sub restQuery {
