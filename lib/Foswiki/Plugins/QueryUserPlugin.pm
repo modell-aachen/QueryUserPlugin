@@ -180,8 +180,9 @@ sub _groups {
 
 sub _renderOneValue {
     my ($_text, $name, $val) = @_;
-    $_[0] =~ s/\$json:$name/my $x = JSON->new->allow_nonref->encode($val); $x =~ s#^"##; $x =~ s#"$##; $x/eg;
-    $_[0] =~ s/\$$name/$val/g;
+    my $encodedValue = Foswiki::Func::encode($val // '');
+    $_[0] =~ s/\$json:$name/my $x = JSON->new->allow_nonref->encode($encodedValue); $x =~ s#^"##; $x =~ s#"$##; $x/eg;
+    $_[0] =~ s/\$$name/$encodedValue/g;
 }
 
 sub _render {
@@ -249,7 +250,8 @@ sub _RENDERUSER {
 
     if($userIcon && $Foswiki::cfg{Plugins}{EmployeesAppPlugin}{Enabled} && Foswiki::Plugins::DefaultPreferencesPlugin::getSitePreferencesValue('EMPLOYEESAPP_USERICON') && $cUID){
         require Foswiki::Plugins::EmployeesAppPlugin;
-        $info->{displayName} = Foswiki::Plugins::EmployeesAppPlugin::renderUserWithIcon($session, $cUID, $topic, $web);
+        my $renderedUser = Foswiki::Plugins::EmployeesAppPlugin::renderUserWithIcon($session, $cUID, $topic, $web);
+        return $renderedUser;
     }
     my $returnString = Foswiki::Func::decodeFormatTokens(_render($info, $type eq 'user' ? $userformat: $groupformat));
     eval {
